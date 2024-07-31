@@ -100,7 +100,52 @@ class PemainController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $validator = validator::make($request->all(), [
+            'nama_pemain' => 'required',
+            'foto' => 'nullable|image|mimes:png,jpg',
+            'tgl_lahir' => 'required',
+            'harga_pasar' => 'required|numeric',
+            'posisi' => 'required|in:gk,df,mf,fw',
+            'negara' => 'required',
+            'id_klub' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'data tidak valid',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $pemain = pemain::findOrFail($id);
+            if ($request->hasFile('foto')) {
+                Storage::delete($pemain->foto);
+                $path = $request->file('foto')->store('public/foto');
+                $pemain->foto = $path;
+
+                $pemain->nama_pemain = $request->nama_pemain;
+                $pemain->foto = $path;
+                $pemain->tgl_lahir = $request->tgl_lahir;
+                $pemain->harga_pasar = $request->harga_pasar;
+                $pemain->posisi = $request->posisi;
+                $pemain->negara = $request->negara;
+                $pemain->id_klub = $request->id_klub;
+                $pemain->save();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'data berhasil dibuat',
+                    'data' => $pemain,
+                ], 201);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'terjadi kesalahan',
+                'errors' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
